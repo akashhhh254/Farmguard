@@ -90,6 +90,9 @@ app.post('/api/notify-account-connected', (req, res) => {
     const notifId = `mail-${Date.now()}`;
     const timestamp = new Date().toISOString();
     const formattedDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const originHeader = req.get('origin');
+    const hostHeader = req.get('host');
+    const serviceUrl = originHeader || (hostHeader ? `${req.protocol}://${hostHeader}` : 'https://farmguard.ai');
 
     const subject = 'Security Notice: You are sharing data with FarmGuard AI (Do Not Create Fake Accounts)';
     const dataSharingNotice = 'You are actively sharing data with this app/website (FarmGuard AI - Agro Diagnostic Platform). Your crop health scans, livestock records, and farm location are securely encrypted and processed for agricultural decision support.';
@@ -113,7 +116,7 @@ ${fakeAccountWarning}
 - Registered Email: ${email}
 - Linked Farm Profile: ${farmDetails?.farmName || 'Primary Farm Holding'}
 - Associated Region: ${farmDetails?.district || 'India'}
-- Service URL: https://ais-dev-ctmyilim3rfrlx2ygyb27y-818180000178.asia-east1.run.app
+- Service URL: ${serviceUrl}
 
 If you did not authorize this login or did not intend to share data with this app/website, please terminate the session immediately.
 ======================================================

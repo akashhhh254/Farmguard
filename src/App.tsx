@@ -88,6 +88,7 @@ export default function App() {
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [selectedScanForDetail, setSelectedScanForDetail] = useState<ScanRecord | null>(null);
   const [selectedScanForExpert, setSelectedScanForExpert] = useState<ScanRecord | null>(null);
   const [prefillSample, setPrefillSample] = useState<typeof HACKATHON_DEMO_SAMPLES[0] | null>(null);
@@ -195,16 +196,19 @@ export default function App() {
             handleFarmerRegister(profile, user);
           }}
           onOpenAdvancedLogin={() => {
+            setAuthModalMode('login');
             setIsAuthModalOpen(true);
           }}
           onOpenAdvancedRegister={() => {
+            setAuthModalMode('register');
             setIsAuthModalOpen(true);
           }}
         />
 
-        {/* Optional Modal overlay for Email/Password Wizard */}
+        {/* Modal overlay for Farmer Login / Registration */}
         {isAuthModalOpen && (
           <FarmerRegistrationScreen
+            initialMode={authModalMode}
             onRegister={(profile, user) => {
               handleFarmerRegister(profile, user);
               setIsAuthModalOpen(false);

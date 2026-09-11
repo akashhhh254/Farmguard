@@ -3,17 +3,18 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import firebaseAppletConfig from "../firebase-applet-config.json";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Dynamic configuration prioritizing env variables then firebase-applet-config.json
+const env = (import.meta as any).env || {};
 export const firebaseConfig = {
-  apiKey: "AIzaSyA-as3P2EcMnX136xfe0Pj_i_gHSngCTn8",
-  authDomain: "farmguard-5009e.firebaseapp.com",
-  projectId: "farmguard-5009e",
-  storageBucket: "farmguard-5009e.firebasestorage.app",
-  messagingSenderId: "881244480410",
-  appId: "1:881244480410:web:8040c72018b6b044d71023",
-  measurementId: "G-9MN0DGZJ5S"
+  apiKey: env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey || "",
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain || "",
+  projectId: env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId || "",
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket || "",
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId || "",
+  appId: env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId || "",
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || firebaseAppletConfig.measurementId || ""
 };
 
 // Initialize Firebase safely
