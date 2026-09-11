@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Farmer profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "district": { "type": "string" },
+        "state": { "type": "string" },
+        "farmSizeAcres": { "type": "number" },
+        "crops": { "type": "array", "items": { "type": "string" } },
+        "animals": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid"]
+    },
+    "Scan": {
+      "title": "Scan",
+      "description": "Crop or livestock diagnostic record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["crop", "animal"] },
+        "entityName": { "type": "string" },
+        "condition": { "type": "string" },
+        "confidence": { "type": "number" },
+        "severity": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "entityName"]
+    }
+  },
+  "firestore": {
+    "rules": "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    function isAuthenticated() {\n      return request.auth != null;\n    }\n    function isOwner(userId) {\n      return isAuthenticated() && request.auth.uid == userId;\n    }\n    match /users/{userId} {\n      allow read, write: if isOwner(userId);\n    }\n    match /scans/{scanId} {\n      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);\n    }\n    match /expenses/{expenseId} {\n      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);\n    }\n    match /records/{recordId} {\n      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);\n    }\n    match /alerts/{alertId} {\n      allow read: if isAuthenticated();\n      allow write: if isAuthenticated();\n    }\n  }\n}",
+    "indexes": []
+  }
+}

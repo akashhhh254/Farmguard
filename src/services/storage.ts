@@ -147,3 +147,66 @@ export function saveStoredAlerts(alerts: FarmAlert[]): void {
     console.error('Failed to save alerts', e);
   }
 }
+
+export function getStoredExpenses(): import('../types').ExpenseRecord[] {
+  const DEFAULT_EXPENSES: import('../types').ExpenseRecord[] = [
+    { id: 'exp-1', date: '2026-09-08', type: 'expense', category: 'Fertilizer', amount: 3200, notes: 'DAP & Urea bags' },
+    { id: 'exp-2', date: '2026-09-05', type: 'expense', category: 'Labour', amount: 2400, notes: 'Weeding 4 workers' },
+    { id: 'exp-3', date: '2026-09-02', type: 'income', category: 'Produce Sale', amount: 18500, notes: 'Tomato harvest 12 crates' },
+    { id: 'exp-4', date: '2026-08-28', type: 'expense', category: 'Veterinary', amount: 800, notes: 'Deworming & calcium tonic' },
+  ];
+  try {
+    const raw = localStorage.getItem('farmguard_expenses_v1');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return DEFAULT_EXPENSES;
+}
+
+export function saveStoredExpenses(expenses: import('../types').ExpenseRecord[]): void {
+  try {
+    localStorage.setItem('farmguard_expenses_v1', JSON.stringify(expenses));
+  } catch (e) {
+    console.error('Failed to save expenses', e);
+  }
+}
+
+export function getStoredCropRecords(): import('../types').CropRecordItem[] {
+  const DEFAULT_CROPS: import('../types').CropRecordItem[] = [
+    { id: 'cr-1', cropName: 'Cotton (कपास)', variety: 'Bt Cotton RCH-659', plantingDate: '2026-06-15', fieldArea: '2.5 Acres (North Plot)', stage: 'Square Formation', notes: 'Drip irrigated, monitored for bollworm' },
+    { id: 'cr-2', cropName: 'Tomato (टमाटर)', variety: 'Abhinav Hybrid', plantingDate: '2026-07-20', fieldArea: '1.0 Acre (South Plot)', stage: 'Fruiting Stage', notes: 'Staked with bamboo, weekly calcium spray' },
+  ];
+  try {
+    const raw = localStorage.getItem('farmguard_crop_records_v1');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return DEFAULT_CROPS;
+}
+
+export function saveStoredCropRecords(records: import('../types').CropRecordItem[]): void {
+  try {
+    localStorage.setItem('farmguard_crop_records_v1', JSON.stringify(records));
+  } catch (e) {
+    console.error('Failed to save crop records', e);
+  }
+}
+
+export function getStoredAnimalRecords(): import('../types').AnimalRecordItem[] {
+  const DEFAULT_ANIMALS: import('../types').AnimalRecordItem[] = [
+    { id: 'an-1', tagId: 'IN-MH-1082', animalType: 'Gir Cow (गाय - गौरी)', ageYears: 4, vaccinationHistory: ['FMD (Aug 2026)', 'Lumpy Skin (May 2026)'], lastCheckupDate: '2026-08-15', healthStatus: 'healthy', notes: 'Yields 11 L/day, high appetite' },
+    { id: 'an-2', tagId: 'IN-MH-2041', animalType: 'Murrah Buffalo (भैंस - लक्ष्मी)', ageYears: 5, vaccinationHistory: ['HS & BQ (Jul 2026)'], lastCheckupDate: '2026-08-20', healthStatus: 'healthy', notes: 'Calved in June, healthy lactation' },
+  ];
+  try {
+    const raw = localStorage.getItem('farmguard_animal_records_v1');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return DEFAULT_ANIMALS;
+}
+
+export function saveStoredAnimalRecords(records: import('../types').AnimalRecordItem[]): void {
+  try {
+    localStorage.setItem('farmguard_animal_records_v1', JSON.stringify(records));
+  } catch (e) {
+    console.error('Failed to save animal records', e);
+  }
+}
+

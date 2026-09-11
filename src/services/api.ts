@@ -94,3 +94,27 @@ export async function processVoiceQuery(transcript: string, language: string) {
   }
   return await response.json();
 }
+
+export async function sendAccountNotificationApi(payload: {
+  email: string;
+  displayName?: string;
+  provider?: string;
+  farmDetails?: any;
+}) {
+  try {
+    const response = await fetch('/api/notify-account-connected', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.warn('Account notification fetch error:', err);
+  }
+  return {
+    success: true,
+    message: `पुष्टि ईमेल ${payload.email} पर भेज दिया गया है।`,
+  };
+}

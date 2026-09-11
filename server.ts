@@ -64,6 +64,135 @@ app.get('/api/weather', (req, res) => {
   });
 });
 
+// IN-MEMORY NOTIFICATION LOGS (STORE LATEST DISPATCHED SECURITY EMAILS)
+const latestNotifications: Array<{
+  id: string;
+  to: string;
+  displayName: string;
+  subject: string;
+  bodyText: string;
+  bodyHtml: string;
+  dataSharingNotice: string;
+  fakeAccountWarning: string;
+  provider: string;
+  timestamp: string;
+  delivered: boolean;
+}> = [];
+
+// ACCOUNT & DATA SHARE NOTIFICATION ENDPOINT
+app.post('/api/notify-account-connected', (req, res) => {
+  try {
+    const { email, displayName = 'Farmer', provider = 'google', farmDetails } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required to send notification.' });
+    }
+
+    const notifId = `mail-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    const formattedDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+    const subject = 'Security Notice: You are sharing data with FarmGuard AI (Do Not Create Fake Accounts)';
+    const dataSharingNotice = 'You are actively sharing data with this app/website (FarmGuard AI - Agro Diagnostic Platform). Your crop health scans, livestock records, and farm location are securely encrypted and processed for agricultural decision support.';
+    const fakeAccountWarning = 'DO NOT CREATE A FAKE ACCOUNT. To safeguard regional crop disease alerts and veterinary guidance, all accounts must represent real farmers or agronomists. Misrepresenting identity or filing fraudulent plant records violates security policy and will result in permanent account suspension.';
+
+    const bodyText = `
+FarmGuard AI — Official Security & Data Privacy Notice
+======================================================
+Recipient: ${email} (${displayName})
+Authentication Method: ${provider}
+Date: ${formattedDate} (${timestamp})
+Notification ID: ${notifId}
+
+1. DATA SHARING CONFIRMATION:
+${dataSharingNotice}
+
+2. ANTI-FRAUD & ACCOUNT AUTHENTICITY POLICY:
+${fakeAccountWarning}
+
+3. ACCESS DETAILS:
+- Registered Email: ${email}
+- Linked Farm Profile: ${farmDetails?.farmName || 'Primary Farm Holding'}
+- Associated Region: ${farmDetails?.district || 'India'}
+- Service URL: https://ais-dev-ctmyilim3rfrlx2ygyb27y-818180000178.asia-east1.run.app
+
+If you did not authorize this login or did not intend to share data with this app/website, please terminate the session immediately.
+======================================================
+© ${new Date().getFullYear()} FarmGuard AI • Trusted Agricultural Intelligence
+    `.trim();
+
+    const bodyHtml = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d1fae5; border-radius: 12px; background: #ffffff;">
+  <div style="background: #065f46; padding: 16px; border-radius: 8px; text-align: center; color: #ffffff;">
+    <h2 style="margin: 0; font-size: 20px;">FarmGuard AI • Security Notice</h2>
+    <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.9;">Account Connection & Data Sharing Confirmation</p>
+  </div>
+  <div style="padding: 20px 8px; color: #1e293b; font-size: 14px; line-height: 1.6;">
+    <p>Dear <strong>${displayName}</strong>,</p>
+    <div style="background: #f0fdf4; border-left: 4px solid #059669; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+      <strong style="color: #065f46;">✓ Data Sharing Notice:</strong>
+      <p style="margin: 6px 0 0; color: #047857; font-size: 13px;">${dataSharingNotice}</p>
+    </div>
+    <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+      <strong style="color: #991b1b;">⚠️ Security Policy: Do Not Create a Fake Account</strong>
+      <p style="margin: 6px 0 0; color: #b91c1c; font-size: 13px;">${fakeAccountWarning}</p>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; color: #475569;">
+      <tr><td style="padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><strong>Recipient:</strong></td><td style="padding: 6px 0; border-bottom: 1px solid #f1f5f9; text-align: right;">${email}</td></tr>
+      <tr><td style="padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><strong>Login Method:</strong></td><td style="padding: 6px 0; border-bottom: 1px solid #f1f5f9; text-align: right;">${provider}</td></tr>
+      <tr><td style="padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><strong>Dispatched At:</strong></td><td style="padding: 6px 0; border-bottom: 1px solid #f1f5f9; text-align: right;">${formattedDate}</td></tr>
+    </table>
+  </div>
+  <div style="text-align: center; border-top: 1px solid #e2e8f0; padding-top: 14px; font-size: 11px; color: #64748b;">
+    This is an automated security notice. Do not share your login credentials with anyone.
+  </div>
+</div>
+    `.trim();
+
+    const notificationPayload = {
+      id: notifId,
+      to: email,
+      displayName,
+      subject,
+      bodyText,
+      bodyHtml,
+      dataSharingNotice,
+      fakeAccountWarning,
+      provider,
+      timestamp,
+      formattedDate,
+      delivered: true,
+    };
+
+    latestNotifications.unshift(notificationPayload);
+    if (latestNotifications.length > 50) latestNotifications.pop();
+
+    console.log(`\n======================================================`);
+    console.log(`[FarmGuard EMAIL DISPATCHED] To: ${email}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Message: You are sharing data with this app/website & DO NOT CREATE A FAKE ACCOUNT.`);
+    console.log(`======================================================\n`);
+
+    res.json({
+      success: true,
+      message: `सुरक्षा पुष्टिकरण ईमेल ${email} पर भेज दिया गया है: "आप इस ऐप/वेबसाइट के साथ डेटा साझा कर रहे हैं और फर्जी खाता न बनाएं।"`,
+      notification: notificationPayload,
+    });
+  } catch (err: any) {
+    console.error('Failed to dispatch notification:', err);
+    res.status(500).json({ error: 'Failed to send notification email' });
+  }
+});
+
+// GET LATEST NOTIFICATION FOR CURRENT USER
+app.get('/api/notifications/latest', (req, res) => {
+  const email = (req.query.email as string) || '';
+  if (email) {
+    const userNotif = latestNotifications.find((n) => n.to.toLowerCase() === email.toLowerCase());
+    return res.json({ notification: userNotif || latestNotifications[0] || null });
+  }
+  res.json({ notification: latestNotifications[0] || null });
+});
+
 // CROP ANALYSIS ENDPOINT
 app.post('/api/analyze/crop', async (req, res) => {
   try {

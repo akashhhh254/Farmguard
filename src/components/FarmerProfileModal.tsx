@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, User, MapPin, Phone, Save, Sprout, HeartPulse } from 'lucide-react';
 import { FarmerProfile, Language } from '../types';
 import { saveStoredProfile } from '../services/storage';
+import { SuccessCheckmark } from './SuccessCheckmark';
 
 interface FarmerProfileModalProps {
   isOpen: boolean;
@@ -21,13 +22,17 @@ export const FarmerProfileModal: React.FC<FarmerProfileModalProps> = ({
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState<FarmerProfile>({ ...profile });
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveStoredProfile(formData);
     onProfileUpdate(formData);
     onLanguageChange(formData.language);
-    onClose();
+    setIsSaved(true);
+    setTimeout(() => {
+      onClose();
+    }, 600);
   };
 
   return (
@@ -125,10 +130,20 @@ export const FarmerProfileModal: React.FC<FarmerProfileModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              disabled={isSaved}
+              className="px-4 py-2 rounded-lg font-semibold text-white bg-emerald-800 hover:bg-emerald-900 flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors disabled:bg-emerald-700"
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Profile</span>
+              {isSaved ? (
+                <>
+                  <SuccessCheckmark size="sm" />
+                  <span>Profile Saved!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Profile</span>
+                </>
+              )}
             </button>
           </div>
         </form>

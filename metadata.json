@@ -1,6 +1,6 @@
 {
   "name": "FarmGuard AI",
-  "description": "One Farm. One AI Health Assistant. AI-powered early crop disease detection and livestock health screening for farmers.",
+  "description": "Smart Farming. Healthier Crops. Healthier Livestock. Enterprise-grade AgriTech platform for Indian farmers with crop leaf disease diagnosis, livestock health screening, localized agro-weather advisories, and expert helplines.",
   "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

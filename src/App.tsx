@@ -5,7 +5,8 @@ import {
   ScanRecord, 
   FarmAlert, 
   FarmerProfile, 
-  WeatherContext 
+  WeatherContext,
+  AuthUser
 } from './types';
 import { translations } from './translations';
 import { 
@@ -19,10 +20,12 @@ import {
   clearUserRegistration,
   DEFAULT_DEMO_PROFILE
 } from './services/storage';
+import { AuthService } from './services/firebaseAuth';
 import { fetchWeatherAdvisory } from './services/api';
 import { HACKATHON_DEMO_SAMPLES } from './sampleData';
 
 // Components
+import { LandingWelcomeScreen } from './components/LandingWelcomeScreen';
 import { FarmerRegistrationScreen } from './components/FarmerRegistrationScreen';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
@@ -33,14 +36,25 @@ import { ScanHistory } from './components/ScanHistory';
 import { AlertsManager } from './components/AlertsManager';
 import { OfflineLibrary } from './components/OfflineLibrary';
 import { AdminAnalytics } from './components/AdminAnalytics';
+import { SmartIrrigationModule } from './components/SmartIrrigationModule';
+import { FertilizerAdvisorModule } from './components/FertilizerAdvisorModule';
+import { ExpenseTrackerModule } from './components/ExpenseTrackerModule';
+import { FarmRecordsModule } from './components/FarmRecordsModule';
+import { MarketIntelligenceModule } from './components/MarketIntelligenceModule';
+import { KnowledgeHubModule } from './components/KnowledgeHubModule';
 import { VoiceAssistantModal } from './components/VoiceAssistantModal';
 import { ExpertContactModal } from './components/ExpertContactModal';
 import { FarmerProfileModal } from './components/FarmerProfileModal';
 import { ScanDetailModal } from './components/ScanDetailModal';
 
 export default function App() {
-  // Gating state: User MUST register/fill form to access main page
-  const [isRegistered, setIsRegistered] = useState<boolean>(() => isUserRegistered());
+  // Current Authenticated User (from Firebase Auth session)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => AuthService.getCurrentUser());
+
+  // Gating state: User MUST be authenticated and have a farm profile to access main page
+  const [isRegistered, setIsRegistered] = useState<boolean>(() => {
+    return Boolean(AuthService.getCurrentUser() && isUserRegistered());
+  });
 
   // User Profile & Language
   const [farmerProfile, setFarmerProfile] = useState<FarmerProfile>(() => {
@@ -73,9 +87,40 @@ export default function App() {
   // Modal States
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedScanForDetail, setSelectedScanForDetail] = useState<ScanRecord | null>(null);
   const [selectedScanForExpert, setSelectedScanForExpert] = useState<ScanRecord | null>(null);
   const [prefillSample, setPrefillSample] = useState<typeof HACKATHON_DEMO_SAMPLES[0] | null>(null);
+
+  // Subscribe to Firebase Auth changes in real-time
+  useEffect(() => {
+    const unsubscribe = AuthService.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+      if (user) {
+        setIsRegistered(true);
+        const stored = getStoredProfile();
+        if (stored) {
+          if (user.displayName && (!stored.name || stored.name === 'किसान (Farmer)')) {
+            stored.name = user.displayName;
+          }
+          if (user.email && !stored.email) {
+            stored.email = user.email;
+          }
+          if (user.photoURL && !stored.photoURL) {
+            stored.photoURL = user.photoURL;
+          }
+          setFarmerProfile(stored);
+        }
+      } else {
+        setCurrentUser(null);
+        setIsRegistered(false);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
 
   // Weather update on mount or location change
   useEffect(() => {
@@ -86,18 +131,24 @@ export default function App() {
     }
   }, [farmerProfile?.district]);
 
-  // Handler for Farmer Registration
-  const handleFarmerRegister = (newProfile: FarmerProfile) => {
+  // Handler for Farmer Registration / Login
+  const handleFarmerRegister = (newProfile: FarmerProfile, authUser?: AuthUser) => {
     saveStoredProfile(newProfile);
     setFarmerProfile(newProfile);
     setLanguage(newProfile.language || 'hi');
+    if (authUser) {
+      setCurrentUser(authUser);
+      AuthService.saveUserSession(authUser);
+    }
     setIsRegistered(true);
     setCurrentView('dashboard');
   };
 
   // Handler for Logout / Switch Farmer (returns to registration screen)
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await AuthService.signOut();
     clearUserRegistration();
+    setCurrentUser(null);
     setIsRegistered(false);
   };
 
@@ -133,14 +184,37 @@ export default function App() {
     }
   };
 
-  // MANDATORY REQUIREMENT: Without registration, do NOT enter main page!
+  // Gating check: When user visits without an active authenticated profile, show Landing/Welcome screen
   if (!isRegistered) {
     return (
-      <FarmerRegistrationScreen
-        onRegister={handleFarmerRegister}
-        currentLanguage={language}
-        onLanguageChange={setLanguage}
-      />
+      <div className="min-h-screen bg-[#fbfbf9]">
+        <LandingWelcomeScreen
+          currentLanguage={language}
+          onLanguageChange={handleLanguageChange}
+          onAuthenticated={(profile, user) => {
+            handleFarmerRegister(profile, user);
+          }}
+          onOpenAdvancedLogin={() => {
+            setIsAuthModalOpen(true);
+          }}
+          onOpenAdvancedRegister={() => {
+            setIsAuthModalOpen(true);
+          }}
+        />
+
+        {/* Optional Modal overlay for Email/Password Wizard */}
+        {isAuthModalOpen && (
+          <FarmerRegistrationScreen
+            onRegister={(profile, user) => {
+              handleFarmerRegister(profile, user);
+              setIsAuthModalOpen(false);
+            }}
+            currentLanguage={language}
+            onLanguageChange={handleLanguageChange}
+            onClose={() => setIsAuthModalOpen(false)}
+          />
+        )}
+      </div>
     );
   }
 
@@ -156,11 +230,36 @@ export default function App() {
         onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
         farmerProfile={farmerProfile}
+        currentUser={currentUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5">
+        {currentView === 'welcome-info' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200">
+              <span className="text-xs font-bold text-slate-700">FarmGuard AI — प्लेटफॉर्म परिचय (Platform Info)</span>
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="px-3 py-1.5 rounded-lg bg-emerald-800 text-white text-xs font-bold hover:bg-emerald-900 cursor-pointer"
+              >
+                ← मुख्य डैशबोर्ड पर जाएं (Open Dashboard)
+              </button>
+            </div>
+            <LandingWelcomeScreen
+              currentLanguage={language}
+              onLanguageChange={handleLanguageChange}
+              onAuthenticated={(profile, user) => {
+                handleFarmerRegister(profile, user);
+              }}
+              onOpenAdvancedLogin={() => setIsAuthModalOpen(true)}
+              onOpenAdvancedRegister={() => setIsAuthModalOpen(true)}
+            />
+          </div>
+        )}
+
         {currentView === 'dashboard' && (
           <Dashboard
             language={language}
@@ -228,6 +327,49 @@ export default function App() {
             alerts={alerts}
             onAddAlert={handleAddAlert}
             onDismissAlert={handleDismissAlert}
+          />
+        )}
+
+        {currentView === 'irrigation' && (
+          <SmartIrrigationModule
+            language={language}
+            weather={weather}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        )}
+
+        {currentView === 'fertilizer' && (
+          <FertilizerAdvisorModule
+            language={language}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        )}
+
+        {currentView === 'expenses' && (
+          <ExpenseTrackerModule
+            language={language}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        )}
+
+        {currentView === 'farm-records' && (
+          <FarmRecordsModule
+            language={language}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        )}
+
+        {currentView === 'market' && (
+          <MarketIntelligenceModule
+            language={language}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        )}
+
+        {currentView === 'knowledge' && (
+          <KnowledgeHubModule
+            language={language}
+            onBack={() => setCurrentView('dashboard')}
           />
         )}
 
@@ -345,6 +487,19 @@ export default function App() {
           setSelectedScanForExpert(scan);
         }}
       />
+
+      {/* Clean, Non-blocking Farmer Registration / Sign In Modal */}
+      {isAuthModalOpen && (
+        <FarmerRegistrationScreen
+          onRegister={(profile, user) => {
+            handleFarmerRegister(profile, user);
+            setIsAuthModalOpen(false);
+          }}
+          currentLanguage={language}
+          onLanguageChange={handleLanguageChange}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

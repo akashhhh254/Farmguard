@@ -24,6 +24,7 @@ import { translations } from '../translations';
 import { CROP_LIST, GROWTH_STAGES, HACKATHON_DEMO_SAMPLES } from '../sampleData';
 import { analyzeCropApi } from '../services/api';
 import { enqueueOfflineScan, addScanRecord } from '../services/storage';
+import { SuccessCheckmark, ScanSavedToast } from './SuccessCheckmark';
 
 interface CropDetectionModuleProps {
   language: Language;
@@ -61,6 +62,7 @@ export const CropDetectionModule: React.FC<CropDetectionModuleProps> = ({
   const [analysisResult, setAnalysisResult] = useState<CropScanResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
 
   // Camera start
   const handleStartCamera = async () => {
@@ -183,6 +185,7 @@ export const CropDetectionModule: React.FC<CropDetectionModuleProps> = ({
         addScanRecord(record);
         onScanSaved(record);
         setIsSaved(true);
+        setShowSavedToast(true);
       }
     } catch (err: any) {
       console.error('Crop diagnosis failed', err);
@@ -604,10 +607,31 @@ export const CropDetectionModule: React.FC<CropDetectionModuleProps> = ({
                 </button>
               </div>
 
-              {/* Saved Status Indicator */}
-              <div className="text-center pt-2 text-xs text-slate-400 font-medium">
-                Report logged into Farm Health Scan History • ID: {analysisResult.id}
-              </div>
+              {/* Saved Status Indicator with Subtle Framer Motion Checkmark */}
+              {isSaved && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-500/80 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <SuccessCheckmark size="md" />
+                    <div>
+                      <h5 className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                        <span>फसल स्कैन सुरक्षित सहेजा गया (Crop Scan Successfully Saved)</span>
+                      </h5>
+                      <p className="text-[11px] text-emerald-800 font-medium">
+                        फार्म हेल्थ रिकॉर्ड्स में स्थायी रूप से दर्ज • रिपोर्ट आईडी: {analysisResult.id}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-800 text-white px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0 shadow-2xs">
+                    सत्यापित (Verified ✓)
+                  </span>
+                </div>
+              )}
+
+              {!isSaved && (
+                <div className="text-center pt-2 text-xs text-slate-400 font-medium">
+                  Report logged into Farm Health Scan History • ID: {analysisResult.id}
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center space-y-4 shadow-xs">
@@ -629,6 +653,14 @@ export const CropDetectionModule: React.FC<CropDetectionModuleProps> = ({
           )}
         </div>
       </div>
+      {/* Toast confirmation with Framer Motion checkmark */}
+      <ScanSavedToast
+        isOpen={showSavedToast}
+        onClose={() => setShowSavedToast(false)}
+        title="Crop Scan Successfully Saved & Verified"
+        entityName={analysisResult?.cropIdentified}
+        recordId={analysisResult?.id}
+      />
     </div>
   );
 };
