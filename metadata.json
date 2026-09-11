@@ -1,0 +1,7 @@
+{
+  "name": "FarmGuard AI",
+  "description": "One Farm. One AI Health Assistant. AI-powered early crop disease detection and livestock health screening for farmers.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
